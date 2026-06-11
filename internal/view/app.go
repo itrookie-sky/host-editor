@@ -1,8 +1,10 @@
-package main
+package view
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/gogf/gf/v2/os/gctx"
 )
 
 // App struct
@@ -17,11 +19,15 @@ func NewApp() *App {
 
 // startup is called when the app starts. The context is saved
 // so we can call the runtime methods
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+func (a *App) Startup(ctx context.Context) {
+	a.ctx = gctx.WithSpan(ctx, "startup")
 }
 
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	return fmt.Sprintf("Hello %s, It's show time!", name)
+}
+
+func (a *App) Fuck(name string) string {
+	return fmt.Sprintf("Fuck you !  %v", name)
 }

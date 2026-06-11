@@ -2,10 +2,12 @@ package main
 
 import (
 	"embed"
+	"host-editor/internal/view"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
 )
 
 //go:embed all:frontend/dist
@@ -13,7 +15,7 @@ var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
-	app := NewApp()
+	app := view.NewApp()
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -25,7 +27,13 @@ func main() {
 		},
 		DisableResize:    false,
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
-		OnStartup:        app.startup,
+		Mac: &mac.Options{
+			DisableZoom: false,
+			Preferences: &mac.Preferences{
+				FullscreenEnabled: mac.Enabled,
+			},
+		},
+		OnStartup: app.Startup,
 		Bind: []interface{}{
 			app,
 		},
