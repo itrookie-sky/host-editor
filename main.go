@@ -14,20 +14,21 @@ import (
 var assets embed.FS
 
 func main() {
-	// Create an instance of the app structure
 	app := view.NewApp()
 
-	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "host-editor",
-		Width:  1024,
-		Height: 768,
+		Title:     "Host Editor",
+		Width:     1024,
+		Height:    768,
+		MinWidth:  640,
+		MinHeight: 480,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		DisableResize:    false,
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		Mac: &mac.Options{
+			TitleBar: mac.TitleBarHiddenInset(),
 			DisableZoom: false,
 			Preferences: &mac.Preferences{
 				FullscreenEnabled: mac.Enabled,

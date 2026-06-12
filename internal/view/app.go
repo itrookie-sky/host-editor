@@ -7,27 +7,68 @@ import (
 	"github.com/gogf/gf/v2/os/gctx"
 )
 
-// App struct
 type App struct {
-	ctx context.Context
+	ctx  context.Context
+	dir  string
 }
 
-// NewApp creates a new App application struct
 func NewApp() *App {
 	return &App{}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = gctx.WithSpan(ctx, "startup")
+
+	dir, err := hostStoreDir()
+	if err != nil {
+		fmt.Printf("host-editor: resolve store dir: %v\n", err)
+		return
+	}
+	if err := ensureStoreDir(dir); err != nil {
+		fmt.Printf("host-editor: create store dir: %v\n", err)
+		return
+	}
+	a.dir = dir
+
+	files, _ := listHostFiles(dir)
+	if len(files) == 0 {
+		if _, err := createHostFile(dir, defaultFile); err != nil {
+			fmt.Printf("host-editor: create default hosts: %v\n", err)
+		}
+	}
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+func (a *App) ListHostFiles() ([]HostFileInfo, error) {
+	if a.dir == "" {
+		return nil, fmt.Errorf("store directory not initialized")
+	}
+	return listHostFiles(a.dir)
 }
 
-func (a *App) Fuck(name string) string {
-	return fmt.Sprintf("Fuck you !  %v", name)
+func (a *App) ReadHostFile(name string) (string, error) {
+	if a.dir == "" {
+		return "", fmt.Errorf("store directory not initialized")
+	}
+	return readHostFile(a.dir, name)
+}
+
+func (a *App) SaveHostFile(req SaveHostFileRequest) error {
+	if a.dir == "" {
+		return fmt.Errorf("store directory not initialized")
+	}
+	return saveHostFile(a.dir, req.Name, req.Content)
+}
+
+func (a *App) CreateHostFile(name string) (HostFileInfo, error) {
+	if a.dir == "" {
+		return HostFileInfo{}, fmt.Errorf("store directory not initialized")
+	}
+	return createHostFile(a.dir, name)
+}
+
+func (a *App) DeleteHostFile(name string) error {
+	if a.dir == "" {
+		return fmt.Errorf("store directory not initialized")
+	}
+	return deleteHostFile(a.dir, name)
 }
