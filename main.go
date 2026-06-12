@@ -28,7 +28,7 @@ func main() {
 		DisableResize:    false,
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		Mac: &mac.Options{
-			TitleBar: mac.TitleBarHiddenInset(),
+			TitleBar:    mac.TitleBarHiddenInset(),
 			DisableZoom: false,
 			Preferences: &mac.Preferences{
 				FullscreenEnabled: mac.Enabled,
@@ -39,7 +39,6 @@ func main() {
 			app,
 		},
 	})
-
 	if err != nil {
 		println("Error:", err.Error())
 	}

@@ -96,11 +96,11 @@ async function handleSave() {
 }
 
 async function handleCreate() {
-  const name = prompt('New version name:')
+  const name = prompt('New version name:')?.trim()
   if (!name) return
   try {
-    await CreateHostFile(name)
-    await loadFiles()
+    const file = await CreateHostFile(name)
+    files.value = [...files.value.filter((item) => item.name !== file.name), file]
     await handleSelect(name)
   } catch (e: any) {
     showError(e.message || String(e))
@@ -167,10 +167,11 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 38px;
-  padding: 0 78px 0 14px;
+  height: 66px;
+  padding: 28px 78px 0 14px;
   background: #181c24;
   border-bottom: 1px solid #2a2f3b;
+  --wails-draggable: drag;
   -webkit-app-region: drag;
   user-select: none;
   flex-shrink: 0;
@@ -185,6 +186,7 @@ html, body {
 .titlebar-actions {
   display: flex;
   gap: 8px;
+  --wails-draggable: no-drag;
   -webkit-app-region: no-drag;
 }
 

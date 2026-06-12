@@ -2,34 +2,19 @@ package view
 
 import (
 	"fmt"
+	"host-editor/internal/consts"
+	"host-editor/internal/model"
 	"os"
 	"path/filepath"
 	"strings"
 )
-
-const (
-	dirName      = ".host-editor"
-	defaultFile  = "hosts"
-	fileExt      = ".hosts"
-	maxFileNameLen = 64
-)
-
-type HostFileInfo struct {
-	Name    string `json:"name"`
-	IsDirty bool   `json:"isDirty"`
-}
-
-type SaveHostFileRequest struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-}
 
 func hostStoreDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("get home dir: %w", err)
 	}
-	return filepath.Join(home, dirName), nil
+	return filepath.Join(home, consts.HostStoreDirName), nil
 }
 
 func ensureStoreDir(dir string) error {
@@ -40,8 +25,8 @@ func validateHostFileName(name string) error {
 	if name == "" {
 		return fmt.Errorf("file name cannot be empty")
 	}
-	if len(name) > maxFileNameLen {
-		return fmt.Errorf("file name too long (max %d characters)", maxFileNameLen)
+	if len(name) > consts.MaxHostFileNameLength {
+		return fmt.Errorf("file name too long (max %d characters)", consts.MaxHostFileNameLength)
 	}
 	if strings.ContainsAny(name, "/\\:\x00") {
 		return fmt.Errorf("file name contains invalid characters")
@@ -53,10 +38,10 @@ func validateHostFileName(name string) error {
 }
 
 func hostFilePath(dir, name string) string {
-	if name == defaultFile {
-		return filepath.Join(dir, defaultFile)
+	if name == consts.DefaultHostFile {
+		return filepath.Join(dir, consts.DefaultHostFile)
 	}
-	return filepath.Join(dir, name+fileExt)
+	return filepath.Join(dir, name+consts.HostFileExt)
 }
 
 func isHostFile(entry os.DirEntry) bool {
@@ -64,25 +49,25 @@ func isHostFile(entry os.DirEntry) bool {
 		return false
 	}
 	name := entry.Name()
-	return name == defaultFile || strings.HasSuffix(name, fileExt)
+	return name == consts.DefaultHostFile || strings.HasSuffix(name, consts.HostFileExt)
 }
 
-func listHostFiles(dir string) ([]HostFileInfo, error) {
+func listHostFiles(dir string) ([]model.HostFileInfo, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("read host store dir: %w", err)
 	}
 
-	var files []HostFileInfo
+	var files []model.HostFileInfo
 	for _, e := range entries {
 		if !isHostFile(e) {
 			continue
 		}
 		name := e.Name()
-		if name == defaultFile {
-			files = append(files, HostFileInfo{Name: defaultFile})
+		if name == consts.DefaultHostFile {
+			files = append(files, model.HostFileInfo{Name: consts.DefaultHostFile})
 		} else {
-			files = append(files, HostFileInfo{Name: strings.TrimSuffix(name, fileExt)})
+			files = append(files, model.HostFileInfo{Name: strings.TrimSuffix(name, consts.HostFileExt)})
 		}
 	}
 	return files, nil
@@ -116,18 +101,34 @@ func saveHostFile(dir, name, content string) error {
 	return nil
 }
 
-func createHostFile(dir, name string) (HostFileInfo, error) {
+func createHostFile(dir, name string) (model.HostFileInfo, error) {
 	if err := validateHostFileName(name); err != nil {
-		return HostFileInfo{}, err
+		return model.HostFileInfo{}, err
 	}
 	path := hostFilePath(dir, name)
 	if _, err := os.Stat(path); err == nil {
-		return HostFileInfo{}, fmt.Errorf("file %q already exists", name)
+		return model.HostFileInfo{}, fmt.Errorf("file %q already exists", name)
 	}
 	if err := os.WriteFile(path, []byte(""), 0o644); err != nil {
-		return HostFileInfo{}, fmt.Errorf("create host file: %w", err)
+		return model.HostFileInfo{}, fmt.Errorf("create host file: %w", err)
 	}
-	return HostFileInfo{Name: name}, nil
+	return model.HostFileInfo{Name: name}, nil
+}
+
+func ensureDefaultHostFile(dir, sourcePath string) error {
+	files, err := listHostFiles(dir)
+	if err != nil {
+		return err
+	}
+	if len(files) > 0 {
+		return nil
+	}
+
+	data, err := os.ReadFile(sourcePath)
+	if err != nil {
+		return fmt.Errorf("read system hosts: %w", err)
+	}
+	return saveHostFile(dir, consts.DefaultHostFile, string(data))
 }
 
 func deleteHostFile(dir, name string) error {

@@ -1,6 +1,7 @@
 package view
 
 import (
+	"host-editor/internal/consts"
 	"os"
 	"path/filepath"
 	"testing"
@@ -51,7 +52,7 @@ func TestStoreInitCreatesDirAndDefaultFile(t *testing.T) {
 		t.Fatalf("expected 0 files, got %d", len(files))
 	}
 
-	if _, err := createHostFile(storeDir, defaultFile); err != nil {
+	if _, err := createHostFile(storeDir, consts.DefaultHostFile); err != nil {
 		t.Fatalf("createHostFile: %v", err)
 	}
 
@@ -59,8 +60,38 @@ func TestStoreInitCreatesDirAndDefaultFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("listHostFiles after create: %v", err)
 	}
-	if len(files) != 1 || files[0].Name != defaultFile {
+	if len(files) != 1 || files[0].Name != consts.DefaultHostFile {
 		t.Fatalf("expected [hosts], got %v", files)
+	}
+}
+
+func TestEnsureDefaultHostFileCopiesSystemHosts(t *testing.T) {
+	dir := t.TempDir()
+	sourcePath := filepath.Join(dir, "system-hosts")
+	storeDir := filepath.Join(dir, ".host-editor")
+	content := "# system hosts\n127.0.0.1 localhost\n"
+
+	err := os.WriteFile(sourcePath, []byte(content), 0o644)
+	if err != nil {
+		t.Fatalf("write source hosts: %v", err)
+	}
+
+	err = ensureStoreDir(storeDir)
+	if err != nil {
+		t.Fatalf("ensureStoreDir: %v", err)
+	}
+
+	err = ensureDefaultHostFile(storeDir, sourcePath)
+	if err != nil {
+		t.Fatalf("ensureDefaultHostFile: %v", err)
+	}
+
+	got, err := readHostFile(storeDir, consts.DefaultHostFile)
+	if err != nil {
+		t.Fatalf("readHostFile: %v", err)
+	}
+	if got != content {
+		t.Errorf("default hosts content mismatch:\ngot:  %q\nwant: %q", got, content)
 	}
 }
 
@@ -71,11 +102,11 @@ func TestReadSaveRoundTrip(t *testing.T) {
 	}
 
 	content := "# test hosts\n127.0.0.1 localhost\n"
-	if err := saveHostFile(dir, defaultFile, content); err != nil {
+	if err := saveHostFile(dir, consts.DefaultHostFile, content); err != nil {
 		t.Fatalf("saveHostFile: %v", err)
 	}
 
-	got, err := readHostFile(dir, defaultFile)
+	got, err := readHostFile(dir, consts.DefaultHostFile)
 	if err != nil {
 		t.Fatalf("readHostFile: %v", err)
 	}
@@ -151,7 +182,7 @@ func TestRealStoreDir(t *testing.T) {
 		t.Error("expected non-empty dir")
 	}
 	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, dirName)
+	expected := filepath.Join(home, consts.HostStoreDirName)
 	if dir != expected {
 		t.Errorf("got %s, want %s", dir, expected)
 	}
