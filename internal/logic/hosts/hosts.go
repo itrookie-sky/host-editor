@@ -6,9 +6,9 @@ import (
 	"host-editor/internal/consts"
 	"host-editor/internal/model"
 	"host-editor/internal/service"
-	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/gogf/gf/v2/os/gfile"
 )
 
 type sHosts struct {
@@ -28,12 +28,12 @@ func (s *sHosts) Start() {}
 // Init initializes the host file store directory and ensures the default host file
 // exists (by copying from the system hosts file if the store is empty).
 func (s *sHosts) Init(_ context.Context) error {
-	home, err := os.UserHomeDir()
+	home, err := gfile.Home()
 	if err != nil {
 		return fmt.Errorf("get home dir: %w", err)
 	}
-	dir := filepath.Join(home, consts.HostStoreDirName)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	dir := gfile.Join(home, consts.HostStoreDirName)
+	if err := gfile.Mkdir(dir); err != nil {
 		return fmt.Errorf("create store dir: %w", err)
 	}
 	s.dir = dir
@@ -46,11 +46,11 @@ func (s *sHosts) Init(_ context.Context) error {
 		return nil
 	}
 
-	data, err := os.ReadFile(consts.SystemHostsPath)
-	if err != nil {
-		return fmt.Errorf("read system hosts: %w", err)
+	data := gfile.GetContents(consts.SystemHostsPath)
+	if data == "" && !gfile.Exists(consts.SystemHostsPath) {
+		return fmt.Errorf("read system hosts: file %q does not exist", consts.SystemHostsPath)
 	}
-	return s.saveHostFile(consts.DefaultHostFile, string(data))
+	return s.saveHostFile(consts.DefaultHostFile, data)
 }
 
 func (s *sHosts) validateHostFileName(name string) error {
@@ -71,31 +71,28 @@ func (s *sHosts) validateHostFileName(name string) error {
 
 func (s *sHosts) hostFilePath(name string) string {
 	if name == consts.DefaultHostFile {
-		return filepath.Join(s.dir, consts.DefaultHostFile)
+		return gfile.Join(s.dir, consts.DefaultHostFile)
 	}
-	return filepath.Join(s.dir, name+consts.HostFileExt)
+	return gfile.Join(s.dir, name+consts.HostFileExt)
 }
 
-func (s *sHosts) isHostFile(entry os.DirEntry) bool {
-	if entry.IsDir() {
-		return false
-	}
-	name := entry.Name()
+func (s *sHosts) isHostFile(path string) bool {
+	name := gfile.Basename(path)
 	return name == consts.DefaultHostFile || strings.HasSuffix(name, consts.HostFileExt)
 }
 
 func (s *sHosts) listHostFiles() ([]model.HostFileInfo, error) {
-	entries, err := os.ReadDir(s.dir)
+	paths, err := gfile.ScanDirFile(s.dir, "*")
 	if err != nil {
 		return nil, fmt.Errorf("read host store dir: %w", err)
 	}
 
 	var files []model.HostFileInfo
-	for _, e := range entries {
-		if !s.isHostFile(e) {
+	for _, path := range paths {
+		if !s.isHostFile(path) {
 			continue
 		}
-		name := e.Name()
+		name := gfile.Basename(path)
 		if name == consts.DefaultHostFile {
 			files = append(files, model.HostFileInfo{Name: consts.DefaultHostFile})
 		} else {
@@ -110,11 +107,10 @@ func (s *sHosts) readHostFile(name string) (string, error) {
 		return "", err
 	}
 	path := s.hostFilePath(name)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("read host file: %w", err)
+	if !gfile.Exists(path) {
+		return "", fmt.Errorf("read host file: file %q does not exist", name)
 	}
-	return string(data), nil
+	return gfile.GetContents(path), nil
 }
 
 func (s *sHosts) saveHostFile(name, content string) error {
@@ -123,11 +119,11 @@ func (s *sHosts) saveHostFile(name, content string) error {
 	}
 	path := s.hostFilePath(name)
 	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, []byte(content), 0o644); err != nil {
+	if err := gfile.PutContents(tmp, content); err != nil {
 		return fmt.Errorf("write temp file: %w", err)
 	}
-	if err := os.Rename(tmp, path); err != nil {
-		os.Remove(tmp)
+	if err := gfile.Rename(tmp, path); err != nil {
+		_ = gfile.RemoveFile(tmp)
 		return fmt.Errorf("rename temp file: %w", err)
 	}
 	return nil
@@ -138,10 +134,10 @@ func (s *sHosts) createHostFile(name string) (model.HostFileInfo, error) {
 		return model.HostFileInfo{}, err
 	}
 	path := s.hostFilePath(name)
-	if _, err := os.Stat(path); err == nil {
+	if gfile.Exists(path) {
 		return model.HostFileInfo{}, fmt.Errorf("file %q already exists", name)
 	}
-	if err := os.WriteFile(path, []byte(""), 0o644); err != nil {
+	if err := gfile.PutContents(path, ""); err != nil {
 		return model.HostFileInfo{}, fmt.Errorf("create host file: %w", err)
 	}
 	return model.HostFileInfo{Name: name}, nil
@@ -152,7 +148,7 @@ func (s *sHosts) deleteHostFile(name string) error {
 		return err
 	}
 	path := s.hostFilePath(name)
-	if err := os.Remove(path); err != nil {
+	if err := gfile.RemoveFile(path); err != nil {
 		return fmt.Errorf("delete host file: %w", err)
 	}
 	return nil

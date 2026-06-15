@@ -5,16 +5,35 @@ import (
 	"fmt"
 	"host-editor/internal/model"
 	"host-editor/internal/service"
+	"host-editor/utility/logger"
+	"sync"
 
 	"github.com/gogf/gf/v2/os/gctx"
+)
+
+var (
+	app  *App
+	once sync.Once
 )
 
 type App struct {
 	ctx context.Context
 }
 
+// NewApp 创建 App 实例（单例模式）
 func NewApp() *App {
-	return &App{}
+	once.Do(func() {
+		app = &App{}
+	})
+	return app
+}
+
+// GetApp 获取 App 实例
+func GetApp(ctx context.Context) *App {
+	if app == nil {
+		logger.Panic(ctx, "app.not.initialized")
+	}
+	return app
 }
 
 func (a *App) Startup(ctx context.Context) {
