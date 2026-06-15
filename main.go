@@ -1,6 +1,8 @@
 package main
 
 import (
+	_ "host-editor/internal/logic"
+
 	"embed"
 	"host-editor/internal/view"
 
