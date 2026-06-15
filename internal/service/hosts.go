@@ -12,8 +12,7 @@ import (
 
 type (
 	IHosts interface {
-		Start()
-		Init(ctx context.Context) error
+		Start(ctx context.Context) error
 		ListHostFiles() ([]model.HostFileInfo, error)
 		ReadHostFile(name string) (string, error)
 		SaveHostFile(req model.SaveHostFileRequest) error

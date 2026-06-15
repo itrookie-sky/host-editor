@@ -2,8 +2,6 @@ package view
 
 import (
 	"context"
-	"fmt"
-	"host-editor/internal/model"
 	"host-editor/internal/service"
 	"host-editor/utility/logger"
 	"sync"
@@ -17,49 +15,44 @@ var (
 )
 
 type App struct {
-	ctx context.Context
+	ctx   context.Context
+	hosts *Hosts
 }
 
 // NewApp 创建 App 实例（单例模式）
 func NewApp() *App {
 	once.Do(func() {
-		app = &App{}
+		app = &App{
+			hosts: &Hosts{},
+		}
 	})
 	return app
 }
 
-// GetApp 获取 App 实例
-func GetApp(ctx context.Context) *App {
-	if app == nil {
-		logger.Panic(ctx, "app.not.initialized")
+// GetBind 获取绑定实例
+func GetBind() []interface{} {
+	app := NewApp()
+	return []interface{}{
+		app,
+		app.hosts,
 	}
-	return app
 }
 
+// Startup 应用启动
 func (a *App) Startup(ctx context.Context) {
-	a.ctx = gctx.WithSpan(ctx, "startup")
-
-	if err := service.Hosts().Init(a.ctx); err != nil {
-		fmt.Printf("host-editor: init hosts: %v\n", err)
+	ctx = gctx.WithSpan(ctx, "startup")
+	a.ctx = ctx
+	a.hosts.SetCtx(ctx)
+	// 前置服务
+	err := service.Hosts().Start(ctx)
+	if err != nil {
+		logger.Errorf(ctx, "service.hosts.start: %v", err)
+		return
 	}
+	logger.Infof(ctx, "app.startup")
 }
 
-func (a *App) ListHostFiles() ([]model.HostFileInfo, error) {
-	return service.Hosts().ListHostFiles()
-}
-
-func (a *App) ReadHostFile(name string) (string, error) {
-	return service.Hosts().ReadHostFile(name)
-}
-
-func (a *App) SaveHostFile(req model.SaveHostFileRequest) error {
-	return service.Hosts().SaveHostFile(req)
-}
-
-func (a *App) CreateHostFile(name string) (model.HostFileInfo, error) {
-	return service.Hosts().CreateHostFile(name)
-}
-
-func (a *App) DeleteHostFile(name string) error {
-	return service.Hosts().DeleteHostFile(name)
+// Shutdown 退出
+func (a *App) Shutdown(ctx context.Context) {
+	logger.Info(a.ctx, "app.shutdown")
 }

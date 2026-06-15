@@ -23,11 +23,7 @@ func init() {
 	service.RegisterHosts(New())
 }
 
-func (s *sHosts) Start() {}
-
-// Init initializes the host file store directory and ensures the default host file
-// exists (by copying from the system hosts file if the store is empty).
-func (s *sHosts) Init(_ context.Context) error {
+func (s *sHosts) Start(ctx context.Context) error {
 	home, err := gfile.Home()
 	if err != nil {
 		return fmt.Errorf("get home dir: %w", err)

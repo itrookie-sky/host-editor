@@ -22,7 +22,7 @@ server:
   sessionCookieOutput: true # Session特性开启时，是否将SessionId返回到Cookie中。默认true
   sessionPath: "/tmp/gsessions" # Session存储的文件目录路径。默认为当前系统临时目录下的gsessions目录
   # Logging配置
-  logPath: "$HOME/.host-editor/log" # 日志文件存储目录路径，建议使用绝对路径。默认为空，表示关闭
+  logPath: "${HOME}/.host-editor/log" # 日志文件存储目录路径，建议使用绝对路径。默认为空，表示关闭
   logStdout: true # 日志是否输出到终端。默认为true
   errorStack: true # 当Server捕获到异常时是否记录堆栈信息到日志中。默认为true
   errorLogEnabled: true # 是否记录异常日志信息到日志中。默认为true
@@ -48,7 +48,7 @@ i18n:
 # 日志配置
 logger:
   access:
-    path: "$HOME/.host-editor/log" # 日志文件路径。默认为空，表示关闭，仅输出到终端
+    path: "${HOME}/.host-editor/log" # 日志文件路径。默认为空，表示关闭，仅输出到终端
     file: "{Y-m-d}.log" # 日志文件格式。默认为"{Y-m-d}.log"
     prefix: "" # 日志内容输出前缀。默认为空
     level: "ALL" # 日志输出级别
@@ -64,7 +64,7 @@ logger:
     stdoutColorDisabled: false # 关闭终端的颜色打印。默认开启
     writerColorEnable: false # 日志文件是否带上颜色。默认false，表示不带颜色
   error:
-    path: "$HOME/.host-editor/log" # 日志文件路径。默认为空，表示关闭，仅输出到终端
+    path: "${HOME}/.host-editor/log" # 日志文件路径。默认为空，表示关闭，仅输出到终端
     file: "{Y-m-d}.log" # 日志文件格式。默认为"{Y-m-d}.log"
     prefix: "" # 日志内容输出前缀。默认为空
     level: "PROD" # 日志输出级别
@@ -82,7 +82,7 @@ logger:
 # 数据库连接配置
 database:
   logger:
-    path: "$HOME/.host-editor/log/sql"
+    path: "${HOME}/.host-editor/log/sql"
     level: "ALL"
     ctxKeys: ["RequestId"]
     header: true # 是否打印日志的头信息。默认true
@@ -105,7 +105,7 @@ database:
 # redis配置
 cache:
   adapter: "file"
-  path: "$HOME/.host-editor/cache"
+  path: "${HOME}/.host-editor/cache"
   tokenCache:
     address: localhost:6379
     db: 0

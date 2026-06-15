@@ -16,8 +16,8 @@ import (
 var assets embed.FS
 
 func main() {
+	// 应用启动
 	app := view.NewApp()
-
 	err := wails.Run(&options.App{
 		Title:     "Host Editor",
 		Width:     1024,
@@ -36,10 +36,9 @@ func main() {
 				FullscreenEnabled: mac.Enabled,
 			},
 		},
-		OnStartup: app.Startup,
-		Bind: []interface{}{
-			app,
-		},
+		OnStartup:  app.Startup,
+		OnShutdown: app.Shutdown,
+		Bind:       view.GetBind(),
 	})
 	if err != nil {
 		println("Error:", err.Error())

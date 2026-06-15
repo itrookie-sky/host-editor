@@ -24,7 +24,7 @@ import { ref, onMounted, watch } from "vue";
 import HostSidebar from "./components/HostSidebar.vue";
 import HostsEditor from "./components/HostsEditor.vue";
 import type { HostFileInfo } from "./types/host";
-import { ListHostFiles, ReadHostFile, SaveHostFile, CreateHostFile, DeleteHostFile } from "../wailsjs/go/view/App";
+import { ListHostFiles, ReadHostFile, SaveHostFile, CreateHostFile, DeleteHostFile } from "../wailsjs/go/view/Hosts";
 
 const files = ref<HostFileInfo[]>([]);
 const activeName = ref("");
