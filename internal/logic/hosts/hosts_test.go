@@ -1,7 +1,9 @@
 package hosts
 
 import (
+	"context"
 	"host-editor/internal/consts"
+	"host-editor/internal/model"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,6 +11,17 @@ import (
 
 func newTestHosts(dir string) *sHosts {
 	return &sHosts{dir: dir}
+}
+
+func TestPublicMethodsRequireContextAsFirstParameter(t *testing.T) {
+	var s = newTestHosts(t.TempDir())
+
+	// 公开方法必须保持 context.Context 作为首个参数；基础类型不用指针，struct 类型使用指针。
+	var _ func(context.Context) ([]*model.HostFileInfo, error) = s.ListHostFiles
+	var _ func(context.Context, string) (string, error) = s.ReadHostFile
+	var _ func(context.Context, *model.SaveHostFileRequest) error = s.SaveHostFile
+	var _ func(context.Context, string) (*model.HostFileInfo, error) = s.CreateHostFile
+	var _ func(context.Context, string) error = s.DeleteHostFile
 }
 
 func TestValidateHostFileName(t *testing.T) {

@@ -12,12 +12,12 @@ import (
 
 type (
 	IHosts interface {
-		Start(ctx context.Context) error
-		ListHostFiles() ([]model.HostFileInfo, error)
-		ReadHostFile(name string) (string, error)
-		SaveHostFile(req model.SaveHostFileRequest) error
-		CreateHostFile(name string) (model.HostFileInfo, error)
-		DeleteHostFile(name string) error
+		Start(ctx context.Context) (err error)
+		ListHostFiles(ctx context.Context) (res []*model.HostFileInfo, err error)
+		ReadHostFile(ctx context.Context, name string) (res string, err error)
+		SaveHostFile(ctx context.Context, req *model.SaveHostFileRequest) (err error)
+		CreateHostFile(ctx context.Context, name string) (res *model.HostFileInfo, err error)
+		DeleteHostFile(ctx context.Context, name string) (err error)
 	}
 )
 

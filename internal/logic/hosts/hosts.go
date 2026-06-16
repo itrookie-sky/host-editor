@@ -23,166 +23,209 @@ func init() {
 	service.RegisterHosts(New())
 }
 
-func (s *sHosts) Start(ctx context.Context) error {
+func (s *sHosts) Start(ctx context.Context) (err error) {
 	home, err := gfile.Home()
 	if err != nil {
-		return fmt.Errorf("get home dir: %w", err)
+		err = fmt.Errorf("get home dir: %w", err)
+		return
 	}
 	dir := gfile.Join(home, consts.HostStoreDirName)
-	if err := gfile.Mkdir(dir); err != nil {
-		return fmt.Errorf("create store dir: %w", err)
+	err = gfile.Mkdir(dir)
+	if err != nil {
+		err = fmt.Errorf("create store dir: %w", err)
+		return
 	}
 	s.dir = dir
 
 	files, err := s.listHostFiles()
 	if err != nil {
-		return err
+		return
 	}
 	if len(files) > 0 {
-		return nil
+		return
 	}
 
 	data := gfile.GetContents(consts.SystemHostsPath)
 	if data == "" && !gfile.Exists(consts.SystemHostsPath) {
-		return fmt.Errorf("read system hosts: file %q does not exist", consts.SystemHostsPath)
+		err = fmt.Errorf("read system hosts: file %q does not exist", consts.SystemHostsPath)
+		return
 	}
-	return s.saveHostFile(consts.DefaultHostFile, data)
+	err = s.saveHostFile(consts.DefaultHostFile, data)
+	return
 }
 
-func (s *sHosts) validateHostFileName(name string) error {
+func (s *sHosts) validateHostFileName(name string) (err error) {
 	if name == "" {
-		return fmt.Errorf("file name cannot be empty")
+		err = fmt.Errorf("file name cannot be empty")
+		return
 	}
 	if len(name) > consts.MaxHostFileNameLength {
-		return fmt.Errorf("file name too long (max %d characters)", consts.MaxHostFileNameLength)
+		err = fmt.Errorf("file name too long (max %d characters)", consts.MaxHostFileNameLength)
+		return
 	}
 	if strings.ContainsAny(name, "/\\:\x00") {
-		return fmt.Errorf("file name contains invalid characters")
+		err = fmt.Errorf("file name contains invalid characters")
+		return
 	}
 	if name == "." || name == ".." {
-		return fmt.Errorf("invalid file name")
+		err = fmt.Errorf("invalid file name")
+		return
 	}
-	return nil
+	return
 }
 
-func (s *sHosts) hostFilePath(name string) string {
+func (s *sHosts) hostFilePath(name string) (res string) {
 	if name == consts.DefaultHostFile {
-		return gfile.Join(s.dir, consts.DefaultHostFile)
+		res = gfile.Join(s.dir, consts.DefaultHostFile)
+		return
 	}
-	return gfile.Join(s.dir, name+consts.HostFileExt)
+	res = gfile.Join(s.dir, name+consts.HostFileExt)
+	return
 }
 
-func (s *sHosts) isHostFile(path string) bool {
+func (s *sHosts) isHostFile(path string) (res bool) {
 	name := gfile.Basename(path)
-	return name == consts.DefaultHostFile || strings.HasSuffix(name, consts.HostFileExt)
+	res = name == consts.DefaultHostFile || strings.HasSuffix(name, consts.HostFileExt)
+	return
 }
 
-func (s *sHosts) listHostFiles() ([]model.HostFileInfo, error) {
+func (s *sHosts) listHostFiles() (res []*model.HostFileInfo, err error) {
 	paths, err := gfile.ScanDirFile(s.dir, "*")
 	if err != nil {
-		return nil, fmt.Errorf("read host store dir: %w", err)
+		err = fmt.Errorf("read host store dir: %w", err)
+		return
 	}
 
-	var files []model.HostFileInfo
+	res = make([]*model.HostFileInfo, 0, len(paths))
 	for _, path := range paths {
 		if !s.isHostFile(path) {
 			continue
 		}
 		name := gfile.Basename(path)
 		if name == consts.DefaultHostFile {
-			files = append(files, model.HostFileInfo{Name: consts.DefaultHostFile})
+			res = append(res, &model.HostFileInfo{Name: consts.DefaultHostFile})
 		} else {
-			files = append(files, model.HostFileInfo{Name: strings.TrimSuffix(name, consts.HostFileExt)})
+			res = append(res, &model.HostFileInfo{Name: strings.TrimSuffix(name, consts.HostFileExt)})
 		}
 	}
-	return files, nil
+	return
 }
 
-func (s *sHosts) readHostFile(name string) (string, error) {
-	if err := s.validateHostFileName(name); err != nil {
-		return "", err
+func (s *sHosts) readHostFile(name string) (res string, err error) {
+	err = s.validateHostFileName(name)
+	if err != nil {
+		return
 	}
 	path := s.hostFilePath(name)
 	if !gfile.Exists(path) {
-		return "", fmt.Errorf("read host file: file %q does not exist", name)
+		err = fmt.Errorf("read host file: file %q does not exist", name)
+		return
 	}
-	return gfile.GetContents(path), nil
+	res = gfile.GetContents(path)
+	return
 }
 
-func (s *sHosts) saveHostFile(name, content string) error {
-	if err := s.validateHostFileName(name); err != nil {
-		return err
+func (s *sHosts) saveHostFile(name string, content string) (err error) {
+	err = s.validateHostFileName(name)
+	if err != nil {
+		return
 	}
 	path := s.hostFilePath(name)
 	tmp := path + ".tmp"
-	if err := gfile.PutContents(tmp, content); err != nil {
-		return fmt.Errorf("write temp file: %w", err)
+	err = gfile.PutContents(tmp, content)
+	if err != nil {
+		err = fmt.Errorf("write temp file: %w", err)
+		return
 	}
-	if err := gfile.Rename(tmp, path); err != nil {
+	err = gfile.Rename(tmp, path)
+	if err != nil {
 		_ = gfile.RemoveFile(tmp)
-		return fmt.Errorf("rename temp file: %w", err)
+		err = fmt.Errorf("rename temp file: %w", err)
+		return
 	}
-	return nil
+	return
 }
 
-func (s *sHosts) createHostFile(name string) (model.HostFileInfo, error) {
-	if err := s.validateHostFileName(name); err != nil {
-		return model.HostFileInfo{}, err
+func (s *sHosts) createHostFile(name string) (res *model.HostFileInfo, err error) {
+	err = s.validateHostFileName(name)
+	if err != nil {
+		return
 	}
 	path := s.hostFilePath(name)
 	if gfile.Exists(path) {
-		return model.HostFileInfo{}, fmt.Errorf("file %q already exists", name)
+		err = fmt.Errorf("file %q already exists", name)
+		return
 	}
-	if err := gfile.PutContents(path, ""); err != nil {
-		return model.HostFileInfo{}, fmt.Errorf("create host file: %w", err)
+	err = gfile.PutContents(path, "")
+	if err != nil {
+		err = fmt.Errorf("create host file: %w", err)
+		return
 	}
-	return model.HostFileInfo{Name: name}, nil
+	res = &model.HostFileInfo{Name: name}
+	return
 }
 
-func (s *sHosts) deleteHostFile(name string) error {
-	if err := s.validateHostFileName(name); err != nil {
-		return err
+func (s *sHosts) deleteHostFile(name string) (err error) {
+	err = s.validateHostFileName(name)
+	if err != nil {
+		return
 	}
 	path := s.hostFilePath(name)
-	if err := gfile.RemoveFile(path); err != nil {
-		return fmt.Errorf("delete host file: %w", err)
+	err = gfile.RemoveFile(path)
+	if err != nil {
+		err = fmt.Errorf("delete host file: %w", err)
+		return
 	}
-	return nil
+	return
 }
 
 // ---- public methods implementing IHosts ----
 
-func (s *sHosts) ListHostFiles() ([]model.HostFileInfo, error) {
+func (s *sHosts) ListHostFiles(ctx context.Context) (res []*model.HostFileInfo, err error) {
 	if s.dir == "" {
-		return nil, fmt.Errorf("store directory not initialized")
+		err = fmt.Errorf("store directory not initialized")
+		return
 	}
-	return s.listHostFiles()
+	res, err = s.listHostFiles()
+	return
 }
 
-func (s *sHosts) ReadHostFile(name string) (string, error) {
+func (s *sHosts) ReadHostFile(ctx context.Context, name string) (res string, err error) {
 	if s.dir == "" {
-		return "", fmt.Errorf("store directory not initialized")
+		err = fmt.Errorf("store directory not initialized")
+		return
 	}
-	return s.readHostFile(name)
+	res, err = s.readHostFile(name)
+	return
 }
 
-func (s *sHosts) SaveHostFile(req model.SaveHostFileRequest) error {
+func (s *sHosts) SaveHostFile(ctx context.Context, req *model.SaveHostFileRequest) (err error) {
 	if s.dir == "" {
-		return fmt.Errorf("store directory not initialized")
+		err = fmt.Errorf("store directory not initialized")
+		return
 	}
-	return s.saveHostFile(req.Name, req.Content)
+	if req == nil {
+		err = fmt.Errorf("request cannot be nil")
+		return
+	}
+	err = s.saveHostFile(req.Name, req.Content)
+	return
 }
 
-func (s *sHosts) CreateHostFile(name string) (model.HostFileInfo, error) {
+func (s *sHosts) CreateHostFile(ctx context.Context, name string) (res *model.HostFileInfo, err error) {
 	if s.dir == "" {
-		return model.HostFileInfo{}, fmt.Errorf("store directory not initialized")
+		err = fmt.Errorf("store directory not initialized")
+		return
 	}
-	return s.createHostFile(name)
+	res, err = s.createHostFile(name)
+	return
 }
 
-func (s *sHosts) DeleteHostFile(name string) error {
+func (s *sHosts) DeleteHostFile(ctx context.Context, name string) (err error) {
 	if s.dir == "" {
-		return fmt.Errorf("store directory not initialized")
+		err = fmt.Errorf("store directory not initialized")
+		return
 	}
-	return s.deleteHostFile(name)
+	err = s.deleteHostFile(name)
+	return
 }

@@ -11,26 +11,26 @@ type Hosts struct {
 }
 
 // SetCtx 设置上下文
-func (a *Hosts) SetCtx(ctx context.Context) {
-	a.ctx = ctx
+func (h *Hosts) SetCtx(ctx context.Context) {
+	h.ctx = ctx
 }
 
-func (a *Hosts) ListHostFiles() ([]model.HostFileInfo, error) {
-	return service.Hosts().ListHostFiles()
+func (h *Hosts) ListHostFiles() (res []*model.HostFileInfo, err error) {
+	return service.Hosts().ListHostFiles(h.ctx)
 }
 
-func (a *Hosts) ReadHostFile(name string) (string, error) {
-	return service.Hosts().ReadHostFile(name)
+func (h *Hosts) ReadHostFile(name string) (res string, err error) {
+	return service.Hosts().ReadHostFile(h.ctx, name)
 }
 
-func (a *Hosts) SaveHostFile(req model.SaveHostFileRequest) error {
-	return service.Hosts().SaveHostFile(req)
+func (h *Hosts) SaveHostFile(req model.SaveHostFileRequest) (err error) {
+	return service.Hosts().SaveHostFile(h.ctx, &req)
 }
 
-func (a *Hosts) CreateHostFile(name string) (model.HostFileInfo, error) {
-	return service.Hosts().CreateHostFile(name)
+func (h *Hosts) CreateHostFile(name string) (res *model.HostFileInfo, err error) {
+	return service.Hosts().CreateHostFile(h.ctx, name)
 }
 
-func (a *Hosts) DeleteHostFile(name string) error {
-	return service.Hosts().DeleteHostFile(name)
+func (h *Hosts) DeleteHostFile(name string) (err error) {
+	return service.Hosts().DeleteHostFile(h.ctx, name)
 }

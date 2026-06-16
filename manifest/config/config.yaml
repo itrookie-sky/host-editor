@@ -104,8 +104,6 @@ database:
     # dryRun: true
 # redis配置
 cache:
-  adapter: "file"
-  path: "${HOME}/.host-editor/cache"
   tokenCache:
     address: localhost:6379
     db: 0

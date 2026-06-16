@@ -14,6 +14,8 @@ var (
 	once sync.Once
 )
 
+// App 应用
+// 非桥接函数不要添加到 App
 type App struct {
 	ctx   context.Context
 	hosts *Hosts
@@ -36,6 +38,11 @@ func GetBind() []interface{} {
 		app,
 		app.hosts,
 	}
+}
+
+// GetCtx 获取上下文
+func GetCtx() context.Context {
+	return NewApp().ctx
 }
 
 // Startup 应用启动
